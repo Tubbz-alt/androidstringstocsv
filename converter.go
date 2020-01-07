@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -32,7 +34,7 @@ type ValuesFile struct {
 }
 
 // unmarshals structure of strings.xml file and returns its content
-func readFromXMLFile(path string) (r *Resources, err error) {
+func readXMLFile(path string) (r *Resources, err error) {
 	var reader *os.File
 	var byteArray []byte
 	var res Resources
@@ -51,7 +53,7 @@ func readFromXMLFile(path string) (r *Resources, err error) {
 }
 
 // reads and unmarshals all strings.xml files in the "res" folder
-func readFromResFolder(path string) ([]ValuesFile, error) {
+func readResFolder(path string) ([]ValuesFile, error) {
 	contents, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -66,7 +68,7 @@ func readFromResFolder(path string) ([]ValuesFile, error) {
 		}
 
 		// reading xml structure
-		res, err := readFromXMLFile(path + "/" + entry.Name() + "/strings.xml")
+		res, err := readXMLFile(path + "/" + entry.Name() + "/strings.xml")
 
 		if err != nil {
 			return nil, err
@@ -101,7 +103,7 @@ func convertValuesToMap(vals []ValuesFile) (m map[string]map[string]string) {
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
 //   ...,   ...,   ...,   ... ...
-func convertResourcesToStrings(m map[string]map[string]string) (s [][]string) {
+func convertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 	// if we get empty map - just do nothing
 	if m == nil {
 		return nil
@@ -142,4 +144,98 @@ func writeToCSVFile(path string, vals [][]string) (file *os.File, err error) {
 		return nil, err
 	}
 	return file, nil
+}
+
+// reads CSV file
+func readCSVFile(path string) (vals [][]string, err error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	vals, err = csv.NewReader(file).ReadAll()
+	return vals, err
+}
+
+// converts matrix of strings (example below) to the map[langCode]map[name]value
+//      , lang1, lang2, lang3 ...;
+// name1,  val1,  val2,  val3 ...;
+// name2,  val1,  val2,  val3 ...;
+//   ...,   ...,   ...,   ... ...
+func convertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string) {
+	if vals == nil {
+		return nil
+	}
+	m = make(map[string]map[string]string)
+
+	// first read names
+	for _, row := range vals[1:] {
+		m[row[0]] = make(map[string]string)
+		for idx, val := range row[1:] {
+			// wtf? idx can be zero despite I start from row + 1 idx?
+			m[row[0]][vals[0][idx+1]] = val
+		}
+	}
+	return
+}
+
+// converts map[langCode]map[name]value to the slice of ValuesFile
+func convertMapToValues(m map[string]map[string]string) (vals []ValuesFile) {
+	for name, st := range m {
+		for langCode, val := range st {
+
+			// looking for existing file
+
+			vals = append(vals, ValuesFile{
+				LanguageCode: langCode,
+				Content:      Resources{},
+			})
+
+			vals[len(vals)-1].Content.Strings = append(
+				vals[len(vals)-1].Content.Strings,
+				StringEntry{
+					Name:  name,
+					Value: val,
+				},
+			)
+		}
+	}
+	return
+}
+
+func writeToXMLFile(path string, r Resources) (file *os.File, err error) {
+	file, err = os.Create(path)
+	if err != nil {
+		return
+	}
+	byteArray, err := xml.MarshalIndent(r, "", "	")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(path, byteArray, 0644)
+	return file, err
+}
+
+func main() {
+	vals, err := readCSVFile("/Users/semior/go/src/androidStringsConverter/test.csv")
+	if err != nil {
+		panic(err)
+	}
+	m := convertStringsMatrixToMap(vals)
+	j, err := json.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+
+	fmt.Println("------------------------------------------")
+
+	vv := convertMapToValues(m)
+	j, err = json.Marshal(vv)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
+
+	writeToXMLFile("test.xml", vv[0].Content)
+
 }
