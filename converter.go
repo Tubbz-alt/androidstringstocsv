@@ -9,7 +9,10 @@ import (
 )
 
 const (
-	valuesPrefix = "values-"
+	valuesPrefix    = "values-"
+	stringsFilename = "strings.xml"
+	csvExportHeader = "code \\ language"
+	exportFileMode  = 0750
 )
 
 // StringEntry struct defines a node of <string></string> tag in xml file
@@ -25,7 +28,7 @@ type Resources struct {
 	Strings []StringEntry `xml:"string"`    // strings itself
 }
 
-// ValuesFile struct defines a values type in android framework
+// ValuesFile struct defines a values type in android framework - map[langCode]resource
 type ValuesFile map[string]Resources
 
 // unmarshals structure of strings.xml file and returns its content
@@ -63,16 +66,11 @@ func readResFolder(path string) (ValuesFile, error) {
 		}
 
 		// reading xml structure
-		res, err := readXMLFile(path + "/" + entry.Name() + "/strings.xml")
+		res, err := readXMLFile(path + "/" + entry.Name() + "/" + stringsFilename)
 
 		if err != nil {
 			return nil, err
 		}
-
-		// vals = append(vals, ValuesFile{
-		// 	LanguageCode: entry.Name()[len(valuesPrefix):],
-		// 	Content:      *res,
-		// })
 
 		langCode := entry.Name()[len(valuesPrefix):]
 
@@ -111,7 +109,7 @@ func convertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 
 	// filling first line - headers
 	for _, langVal := range m {
-		row := []string{"code \\ language"}
+		row := []string{csvExportHeader}
 		for lang := range langVal {
 			row = append(row, lang)
 		}
@@ -178,7 +176,7 @@ func convertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string)
 	return
 }
 
-// converts map[name]map[langCode]value to the slice of ValuesFile - map[langCode]resource
+// converts map[name]map[langCode]value to the slice of ValuesFile
 func convertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 
 	vals = make(ValuesFile)
@@ -219,18 +217,36 @@ func writeToXMLFile(path string, r Resources) (file *os.File, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(path, byteArray, 0644)
+	byteArray = []byte(xml.Header + string(byteArray))
+	err = ioutil.WriteFile(path, byteArray, exportFileMode)
 	return file, err
 }
 
-func main() {
-	vals, err := readCSVFile("/Users/semior/go/src/androidStringsConverter/test.csv")
+// marshals and writes whole xml structure of given ValuesFile to the specified path
+func writeResFolder(path string, vals ValuesFile) (files []*os.File, err error) {
+	err = os.Mkdir(path, exportFileMode)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	m := convertStringsMatrixToMap(vals)
-	vv := convertMapToValues(m)
 
-	writeToXMLFile("test.xml", vv["kg"])
+	files = []*os.File{}
 
+	for langCode, res := range vals {
+		valPath := path + "/" + valuesPrefix + langCode
+
+		err = os.Mkdir(valPath, exportFileMode)
+		if err != nil {
+			return nil, err
+		}
+
+		var file *os.File
+
+		file, err = writeToXMLFile(valPath+"/"+stringsFilename, res)
+		files = append(files, file)
+		if err != nil {
+			return files, err
+		}
+
+	}
+	return
 }
