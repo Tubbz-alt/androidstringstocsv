@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -28,10 +26,7 @@ type Resources struct {
 }
 
 // ValuesFile struct defines a values type in android framework
-type ValuesFile struct {
-	LanguageCode string    // language code of the strings.xml file
-	Content      Resources // content (strings) itself
-}
+type ValuesFile map[string]Resources
 
 // unmarshals structure of strings.xml file and returns its content
 func readXMLFile(path string) (r *Resources, err error) {
@@ -53,13 +48,13 @@ func readXMLFile(path string) (r *Resources, err error) {
 }
 
 // reads and unmarshals all strings.xml files in the "res" folder
-func readResFolder(path string) ([]ValuesFile, error) {
+func readResFolder(path string) (ValuesFile, error) {
 	contents, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 
-	vals := []ValuesFile{}
+	vals := make(ValuesFile)
 
 	for _, entry := range contents {
 		// skip if it is not a directory, that starts with "values-"
@@ -74,31 +69,36 @@ func readResFolder(path string) ([]ValuesFile, error) {
 			return nil, err
 		}
 
-		vals = append(vals, ValuesFile{
-			LanguageCode: entry.Name()[len(valuesPrefix):],
-			Content:      *res,
-		})
+		// vals = append(vals, ValuesFile{
+		// 	LanguageCode: entry.Name()[len(valuesPrefix):],
+		// 	Content:      *res,
+		// })
+
+		langCode := entry.Name()[len(valuesPrefix):]
+
+		vals[langCode] = *res
 	}
 
 	return vals, err
 }
 
-// converts the slice of ValuesFile to the map[langCode]map[name]value
-func convertValuesToMap(vals []ValuesFile) (m map[string]map[string]string) {
+// converts the slice of ValuesFile to the map[name]map[langCode]value
+func convertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
+
 	m = make(map[string]map[string]string)
 	// filling val names
-	for _, v := range vals {
-		for _, s := range v.Content.Strings {
-			if m[s.Name] == nil {
-				m[s.Name] = make(map[string]string)
+	for langCode, res := range vals {
+		for _, str := range res.Strings {
+			if m[str.Name] == nil {
+				m[str.Name] = make(map[string]string)
 			}
-			m[s.Name][v.LanguageCode] = s.Value
+			m[str.Name][langCode] = str.Value
 		}
 	}
 	return
 }
 
-// converts the map[langCode]map[name]value to the matrix of strings, like that:
+// converts the map[name]map[langCode]value to the matrix of strings, like that:
 //      , lang1, lang2, lang3 ...;
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
@@ -156,7 +156,7 @@ func readCSVFile(path string) (vals [][]string, err error) {
 	return vals, err
 }
 
-// converts matrix of strings (example below) to the map[langCode]map[name]value
+// converts matrix of strings (example below) to the map[name]map[langCode]value
 //      , lang1, lang2, lang3 ...;
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
@@ -178,30 +178,38 @@ func convertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string)
 	return
 }
 
-// converts map[langCode]map[name]value to the slice of ValuesFile
-func convertMapToValues(m map[string]map[string]string) (vals []ValuesFile) {
-	for name, st := range m {
-		for langCode, val := range st {
+// converts map[name]map[langCode]value to the slice of ValuesFile - map[langCode]resource
+func convertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 
-			// looking for existing file
+	vals = make(ValuesFile)
 
-			vals = append(vals, ValuesFile{
-				LanguageCode: langCode,
-				Content:      Resources{},
-			})
+	for name, langVal := range m {
+		for langCode, val := range langVal {
+			res, ok := vals[langCode]
 
-			vals[len(vals)-1].Content.Strings = append(
-				vals[len(vals)-1].Content.Strings,
+			if !ok {
+				res = Resources{
+					Strings: []StringEntry{},
+				}
+			}
+
+			res.Strings = append(
+				vals[langCode].Strings,
 				StringEntry{
 					Name:  name,
 					Value: val,
 				},
 			)
+
+			vals[langCode] = res
+
 		}
 	}
+
 	return
 }
 
+// marshals and writes xml structure of Resources to the specified file
 func writeToXMLFile(path string, r Resources) (file *os.File, err error) {
 	file, err = os.Create(path)
 	if err != nil {
@@ -221,21 +229,8 @@ func main() {
 		panic(err)
 	}
 	m := convertStringsMatrixToMap(vals)
-	j, err := json.Marshal(m)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(j))
-
-	fmt.Println("------------------------------------------")
-
 	vv := convertMapToValues(m)
-	j, err = json.Marshal(vv)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(j))
 
-	writeToXMLFile("test.xml", vv[0].Content)
+	writeToXMLFile("test.xml", vv["kg"])
 
 }
