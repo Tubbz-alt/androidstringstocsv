@@ -10,10 +10,14 @@ import (
 )
 
 const (
-	ValuesPrefix    = "values-"
+	// ValuesPrefix defines the default prefix for values folder
+	ValuesPrefix = "values-"
+	// StringsFilename defines the default filename for android string constants file
 	StringsFilename = "strings.xml"
-	CsvExportHeader = "code \\ language"
-	ExportFileMode  = 0750
+	// CSVExportHeader defines the default header for exported CSV file
+	CSVExportHeader = "code \\ language"
+	// ExportFileMode defines the default permissions for created file
+	ExportFileMode = 0750
 )
 
 // StringEntry struct defines a node of <string></string> tag in xml file
@@ -32,7 +36,7 @@ type Resources struct {
 // ValuesFile struct defines a values type in android framework - map[langCode]resource
 type ValuesFile map[string]Resources
 
-// unmarshals structure of strings.xml file and returns its content
+// ReadXMLFile unmarshals structure of strings.xml file and returns its content
 func ReadXMLFile(path string) (r *Resources, err error) {
 	var reader *os.File
 	var byteArray []byte
@@ -51,7 +55,7 @@ func ReadXMLFile(path string) (r *Resources, err error) {
 	return r, err
 }
 
-// reads and unmarshals all strings.xml files in the "res" folder
+// ReadResFolder reads and unmarshals all strings.xml files in the "res" folder
 func ReadResFolder(path string) (ValuesFile, error) {
 	contents, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -81,7 +85,7 @@ func ReadResFolder(path string) (ValuesFile, error) {
 	return vals, err
 }
 
-// converts the slice of ValuesFile to the map[name]map[langCode]value
+// ConvertValuesToMap converts the slice of ValuesFile to the map[name]map[langCode]value
 func ConvertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
 
 	m = make(map[string]map[string]string)
@@ -97,7 +101,7 @@ func ConvertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
 	return
 }
 
-// converts the map[name]map[langCode]value to the matrix of strings, like that:
+// ConvertMapToStringsMatrix converts the map[name]map[langCode]value to the matrix of strings, like that:
 //      , lang1, lang2, lang3 ...;
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
@@ -110,7 +114,7 @@ func ConvertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 
 	// filling first line - headers
 	for _, langVal := range m {
-		row := []string{CsvExportHeader}
+		row := []string{CSVExportHeader}
 		for lang := range langVal {
 			row = append(row, lang)
 		}
@@ -129,7 +133,7 @@ func ConvertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 	return
 }
 
-// writes the specified structure to the csv file
+// WriteToCSVFile writes the specified structure to the csv file
 func WriteToCSVFile(path string, vals [][]string) (file *os.File, err error) {
 	// creating the csv file itself
 	file, err = os.Create(path)
@@ -145,7 +149,7 @@ func WriteToCSVFile(path string, vals [][]string) (file *os.File, err error) {
 	return file, nil
 }
 
-// reads CSV file
+// ReadCSVFile reads CSV file
 func ReadCSVFile(path string) (vals [][]string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -155,7 +159,7 @@ func ReadCSVFile(path string) (vals [][]string, err error) {
 	return vals, err
 }
 
-// converts matrix of strings (example below) to the map[name]map[langCode]value
+// ConvertStringsMatrixToMap converts matrix of strings (example below) to the map[name]map[langCode]value
 //      , lang1, lang2, lang3 ...;
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
@@ -177,7 +181,7 @@ func ConvertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string)
 	return
 }
 
-// converts map[name]map[langCode]value to the slice of ValuesFile
+// ConvertMapToValues converts map[name]map[langCode]value to the slice of ValuesFile
 func ConvertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 
 	vals = make(ValuesFile)
@@ -208,7 +212,7 @@ func ConvertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 	return
 }
 
-// marshals and writes xml structure of Resources to the specified file
+// WriteToXMLFile marshals and writes xml structure of Resources to the specified file
 func WriteToXMLFile(path string, r Resources) (file *os.File, err error) {
 	file, err = os.Create(path)
 	if err != nil {
@@ -223,7 +227,7 @@ func WriteToXMLFile(path string, r Resources) (file *os.File, err error) {
 	return file, err
 }
 
-// marshals and writes whole xml structure of given ValuesFile to the specified path
+// WriteResFolder marshals and writes whole xml structure of given ValuesFile to the specified path
 func WriteResFolder(path string, vals ValuesFile) (files []*os.File, err error) {
 	err = os.Mkdir(path, ExportFileMode)
 	if err != nil {
