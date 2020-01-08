@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	valuesPrefix    = "values-"
-	stringsFilename = "strings.xml"
-	csvExportHeader = "code \\ language"
-	exportFileMode  = 0750
+	ValuesPrefix    = "values-"
+	StringsFilename = "strings.xml"
+	CsvExportHeader = "code \\ language"
+	ExportFileMode  = 0750
 )
 
 // StringEntry struct defines a node of <string></string> tag in xml file
@@ -32,7 +32,7 @@ type Resources struct {
 type ValuesFile map[string]Resources
 
 // unmarshals structure of strings.xml file and returns its content
-func readXMLFile(path string) (r *Resources, err error) {
+func ReadXMLFile(path string) (r *Resources, err error) {
 	var reader *os.File
 	var byteArray []byte
 	var res Resources
@@ -51,7 +51,7 @@ func readXMLFile(path string) (r *Resources, err error) {
 }
 
 // reads and unmarshals all strings.xml files in the "res" folder
-func readResFolder(path string) (ValuesFile, error) {
+func ReadResFolder(path string) (ValuesFile, error) {
 	contents, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -61,18 +61,18 @@ func readResFolder(path string) (ValuesFile, error) {
 
 	for _, entry := range contents {
 		// skip if it is not a directory, that starts with "values-"
-		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), valuesPrefix) {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), ValuesPrefix) {
 			continue
 		}
 
 		// reading xml structure
-		res, err := readXMLFile(path + "/" + entry.Name() + "/" + stringsFilename)
+		res, err := ReadXMLFile(path + "/" + entry.Name() + "/" + StringsFilename)
 
 		if err != nil {
 			return nil, err
 		}
 
-		langCode := entry.Name()[len(valuesPrefix):]
+		langCode := entry.Name()[len(ValuesPrefix):]
 
 		vals[langCode] = *res
 	}
@@ -81,7 +81,7 @@ func readResFolder(path string) (ValuesFile, error) {
 }
 
 // converts the slice of ValuesFile to the map[name]map[langCode]value
-func convertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
+func ConvertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
 
 	m = make(map[string]map[string]string)
 	// filling val names
@@ -101,7 +101,7 @@ func convertValuesToMap(vals ValuesFile) (m map[string]map[string]string) {
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
 //   ...,   ...,   ...,   ... ...
-func convertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
+func ConvertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 	// if we get empty map - just do nothing
 	if m == nil {
 		return nil
@@ -109,7 +109,7 @@ func convertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 
 	// filling first line - headers
 	for _, langVal := range m {
-		row := []string{csvExportHeader}
+		row := []string{CsvExportHeader}
 		for lang := range langVal {
 			row = append(row, lang)
 		}
@@ -129,7 +129,7 @@ func convertMapToStringsMatrix(m map[string]map[string]string) (s [][]string) {
 }
 
 // writes the specified structure to the csv file
-func writeToCSVFile(path string, vals [][]string) (file *os.File, err error) {
+func WriteToCSVFile(path string, vals [][]string) (file *os.File, err error) {
 	// creating the csv file itself
 	file, err = os.Create(path)
 	if err != nil {
@@ -145,7 +145,7 @@ func writeToCSVFile(path string, vals [][]string) (file *os.File, err error) {
 }
 
 // reads CSV file
-func readCSVFile(path string) (vals [][]string, err error) {
+func ReadCSVFile(path string) (vals [][]string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func readCSVFile(path string) (vals [][]string, err error) {
 // name1,  val1,  val2,  val3 ...;
 // name2,  val1,  val2,  val3 ...;
 //   ...,   ...,   ...,   ... ...
-func convertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string) {
+func ConvertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string) {
 	if vals == nil {
 		return nil
 	}
@@ -177,7 +177,7 @@ func convertStringsMatrixToMap(vals [][]string) (m map[string]map[string]string)
 }
 
 // converts map[name]map[langCode]value to the slice of ValuesFile
-func convertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
+func ConvertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 
 	vals = make(ValuesFile)
 
@@ -208,7 +208,7 @@ func convertMapToValues(m map[string]map[string]string) (vals ValuesFile) {
 }
 
 // marshals and writes xml structure of Resources to the specified file
-func writeToXMLFile(path string, r Resources) (file *os.File, err error) {
+func WriteToXMLFile(path string, r Resources) (file *os.File, err error) {
 	file, err = os.Create(path)
 	if err != nil {
 		return
@@ -218,13 +218,13 @@ func writeToXMLFile(path string, r Resources) (file *os.File, err error) {
 		return nil, err
 	}
 	byteArray = []byte(xml.Header + string(byteArray))
-	err = ioutil.WriteFile(path, byteArray, exportFileMode)
+	err = ioutil.WriteFile(path, byteArray, ExportFileMode)
 	return file, err
 }
 
 // marshals and writes whole xml structure of given ValuesFile to the specified path
-func writeResFolder(path string, vals ValuesFile) (files []*os.File, err error) {
-	err = os.Mkdir(path, exportFileMode)
+func WriteResFolder(path string, vals ValuesFile) (files []*os.File, err error) {
+	err = os.Mkdir(path, ExportFileMode)
 	if err != nil {
 		return nil, err
 	}
@@ -232,16 +232,16 @@ func writeResFolder(path string, vals ValuesFile) (files []*os.File, err error) 
 	files = []*os.File{}
 
 	for langCode, res := range vals {
-		valPath := path + "/" + valuesPrefix + langCode
+		valPath := path + "/" + ValuesPrefix + langCode
 
-		err = os.Mkdir(valPath, exportFileMode)
+		err = os.Mkdir(valPath, ExportFileMode)
 		if err != nil {
 			return nil, err
 		}
 
 		var file *os.File
 
-		file, err = writeToXMLFile(valPath+"/"+stringsFilename, res)
+		file, err = WriteToXMLFile(valPath+"/"+StringsFilename, res)
 		files = append(files, file)
 		if err != nil {
 			return files, err
