@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -66,7 +67,7 @@ func ReadResFolder(path string) (ValuesFile, error) {
 		}
 
 		// reading xml structure
-		res, err := ReadXMLFile(path + "/" + entry.Name() + "/" + StringsFilename)
+		res, err := ReadXMLFile(filepath.Join(path, entry.Name(), StringsFilename))
 
 		if err != nil {
 			return nil, err
@@ -232,7 +233,7 @@ func WriteResFolder(path string, vals ValuesFile) (files []*os.File, err error) 
 	files = []*os.File{}
 
 	for langCode, res := range vals {
-		valPath := path + "/" + ValuesPrefix + langCode
+		valPath := filepath.Join(path, ValuesPrefix+langCode)
 
 		err = os.Mkdir(valPath, ExportFileMode)
 		if err != nil {
@@ -241,7 +242,7 @@ func WriteResFolder(path string, vals ValuesFile) (files []*os.File, err error) 
 
 		var file *os.File
 
-		file, err = WriteToXMLFile(valPath+"/"+StringsFilename, res)
+		file, err = WriteToXMLFile(filepath.Join(valPath, StringsFilename), res)
 		files = append(files, file)
 		if err != nil {
 			return files, err
