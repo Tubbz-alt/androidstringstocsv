@@ -40,7 +40,7 @@ func readSlicesFromCSVFile(path string) (vals [][]string, err error) {
 }
 
 // convertDictionariesToSlices converts the given set of dictionaries to the matrix of strings, like that:
-//          , lang1, lang2, lang3 ...;
+//      head, lang1, lang2, lang3 ...;
 //     name1,  val1,  val2,  val3 ...;
 //     name2,  val1,  val2,  val3 ...;
 //       ...,   ...,   ...,   ... ...
@@ -55,9 +55,10 @@ func convertDictionariesToSlices(dicts general.Dictionaries) (vals [][]string) {
 		}
 	}
 
-	for i := range vals[1:] {
+	for i := 1; i < len(vals); i++ {
 		name := vals[i][0]
-		for _, langCode := range vals[i][1:] {
+		for j := 1; j < len(vals[0]); j++ {
+			langCode := vals[0][j]
 			vals[i] = append(vals[i], dicts[langCode][name])
 		}
 	}
@@ -66,7 +67,7 @@ func convertDictionariesToSlices(dicts general.Dictionaries) (vals [][]string) {
 }
 
 // convertSlicesToDictionaries converts the given matrix of strings (example below) to the set of dictionaries:
-//          , lang1, lang2, lang3 ...;
+//      head, lang1, lang2, lang3 ...;
 //     name1,  val1,  val2,  val3 ...;
 //     name2,  val1,  val2,  val3 ...;
 //       ...,   ...,   ...,   ... ...
@@ -78,10 +79,11 @@ func convertSlicesToDictionaries(vals [][]string) (dicts general.Dictionaries) {
 		dicts[langCode] = make(general.Dictionary)
 	}
 
-	for i, row := range vals[1:] {
-		for j, val := range row[1:] {
-			langCode := vals[0][j]
+	for i := 1; i < len(vals); i++ {
+		for j := 1; j < len(vals[i]); j++ {
+			langCode := vals[0][i]
 			name := vals[i][0]
+			val := vals[i][j]
 
 			dicts[langCode][name] = val
 		}

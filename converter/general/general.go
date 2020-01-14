@@ -4,8 +4,8 @@ package general
 
 // Dictionary defines a single dictionary in
 // format map[code]translation
-type Dictionary map[string]string
+type Dictionary = map[string]string
 
 // Dictionaries defines a set of dictionaries
 // in format map[languageCode]Dictionary
-type Dictionaries map[string]Dictionary
+type Dictionaries = map[string]Dictionary
