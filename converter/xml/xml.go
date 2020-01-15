@@ -101,9 +101,9 @@ func exportDictionaryToXML(path string, d general.Dictionary) (files *os.File, e
 }
 
 // WriteResFolder writes the given set of dictionaries to the res folder at the given path
-func WriteResFolder(path string, dicts general.Dictionaries, override bool) (files []*os.File, err error) {
+func WriteResFolder(path string, dicts general.Dictionaries) (files []*os.File, err error) {
 	err = os.Mkdir(path, ExportFileMode)
-	if (err != nil && err != os.ErrExist) || (err == os.ErrExist && !override) { // todo
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,7 +113,7 @@ func WriteResFolder(path string, dicts general.Dictionaries, override bool) (fil
 		valPath := filepath.Join(path, ValuesPrefix+langCode)
 
 		err = os.Mkdir(valPath, ExportFileMode)
-		if (err != nil && err != os.ErrExist) || (err == os.ErrExist && !override) { // todo
+		if err != nil {
 			return
 		}
 
@@ -121,7 +121,7 @@ func WriteResFolder(path string, dicts general.Dictionaries, override bool) (fil
 
 		file, err = exportDictionaryToXML(filepath.Join(valPath, StringsFilename), d)
 		files = append(files, file)
-		if (err != nil && err != os.ErrExist) || (err == os.ErrExist && !override) { // todo
+		if err != nil {
 			return
 		}
 	}

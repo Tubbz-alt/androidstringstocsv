@@ -55,7 +55,7 @@ func TestDictReadWrite(t *testing.T) {
 		"tl": map[string]string{
 			"test_str": "Test translation",
 		},
-	}, true)
+	})
 	require.NoError(t, err)
 	assert.FileExists(t, "/tmp/androidstringscsv.test", "function didn't create file")
 

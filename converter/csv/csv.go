@@ -93,10 +93,10 @@ func convertSlicesToDictionaries(vals [][]string) (dicts general.Dictionaries) {
 }
 
 // WriteCSVFile writes the given set of dictionaries to the csv file
-func WriteCSVFile(path string, dicts general.Dictionaries, override bool) (file *os.File, err error) {
+func WriteCSVFile(path string, dicts general.Dictionaries) (file *os.File, err error) {
 	// creating the csv file itself
 	file, err = os.Create(path)
-	if (err != nil && err != os.ErrExist) || (err == os.ErrExist && !override) { // todo
+	if err != nil {
 		return
 	}
 
